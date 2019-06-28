@@ -14,6 +14,7 @@ import (
 
 // Constants for Nats Streaming Server connection
 const (
+	Subject     = "cluster_subject"
 	ClusterID   = "cluster_id"
 	ClientID    = "client_id"
 	NatsURL     = "nats_url"
@@ -134,6 +135,7 @@ func (l natsLogger) clone() natsLogger {
 func getNatsInfo(keyValues ...[]interface{}) (natsInfo, bool) {
 	nats := natsInfo{}
 
+	seenKeys := make(map[interface{}]bool)
 	outs := make([][]interface{}, len(keyValues))
 
 	for i := len(keyValues) - 1; i >= 0; i-- {
@@ -143,8 +145,12 @@ func getNatsInfo(keyValues ...[]interface{}) (natsInfo, bool) {
 		for j := len(keyValue) - 2 + (len(keyValue) % 2); j >= 0; j -= 2 {
 			key := keyValue[j]
 			value := keyValue[j+1]
-			fmt.Println(key, "=", value)
-			if key == ClusterID {
+			if _, ok := seenKeys[key]; ok {
+				continue
+			}
+			if key == Subject {
+				nats.subject = value.(string)
+			} else if key == ClusterID {
 				nats.clusterID = value.(string)
 			} else if key == ClientID {
 				nats.clientID = value.(string)
@@ -153,7 +159,18 @@ func getNatsInfo(keyValues ...[]interface{}) (natsInfo, bool) {
 			} else if key == ConnectWait {
 				nats.connectWait = time.Duration(value.(int)) * time.Second
 			}
+			seenKeys[key] = true
 		}
+	}
+
+	if nats.clusterID == "" || nats.clientID == "" {
+		return nats, false
+	}
+	if nats.natsUrl == "" {
+		nats.natsUrl = stan.DefaultNatsURL
+	}
+	if nats.connectWait == 0 {
+		nats.connectWait = 5 * time.Second
 	}
 
 	return nats, true
@@ -168,6 +185,7 @@ func connectToNatsStreamingServer(info natsInfo) stan.Conn {
 	)
 	if err != nil {
 		log.Fatalf("Can't connect: %v.\nMake sure a NATS Streaming Server is running at: %s", err, info.natsUrl)
+		return nil
 	}
 	return conn
 }

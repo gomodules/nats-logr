@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-logr/logr"
 	stan "github.com/nats-io/go-nats-streaming"
+	natslog "gomodules.xyz/nats-logr/nats-log"
 )
 
 type natsLogger struct {
@@ -15,8 +16,8 @@ type natsLogger struct {
 }
 
 type natsInfo struct {
-	clusterID, clientID, natsUrl string
-	connectWait                  time.Duration
+	subject, clusterID, clientID, natsUrl string
+	connectWait                           time.Duration
 }
 
 // New returns a logr.Logger which is implemented by nats-logr
@@ -30,15 +31,33 @@ func New() logr.Logger {
 }
 
 func (l natsLogger) Info(msg string, keysAndValues ...interface{}) {
-
+	if l.Enabled() {
+		lvlStr := flatten("level", l.level)
+		msgStr := flatten("msg", msg)
+		trimmed := trimDuplicates(l.values, keysAndValues)
+		fixedStr := flatten(trimmed[0]...)
+		userStr := flatten(trimmed[1]...)
+		nats, _ := getNatsInfo(l.values)
+		natslog.InfoDepth(framesToCaller(), l.stanConn, nats.subject, l.prefix, " ", lvlStr, " ", msgStr, " ", fixedStr, " ", userStr)
+	}
 }
 
 func (l natsLogger) Enabled() bool {
-	return true
+	return bool(natslog.V(natslog.Level(l.level)))
 }
 
 func (l natsLogger) Error(err error, msg string, keysAndValues ...interface{}) {
-
+	msgStr := flatten("msg", msg)
+	var loggableErr interface{}
+	if err != nil {
+		loggableErr = err.Error()
+	}
+	errStr := flatten("error", loggableErr)
+	trimmed := trimDuplicates(l.values, keysAndValues)
+	fixedStr := flatten(trimmed[0]...)
+	userStr := flatten(trimmed[1]...)
+	nats, _ := getNatsInfo(l.values)
+	natslog.ErrorDepth(framesToCaller(), l.stanConn, nats.subject, l.prefix, " ", msgStr, " ", errStr, " ", fixedStr, " ", userStr)
 }
 
 func (l natsLogger) V(level int) logr.InfoLogger {
@@ -70,6 +89,5 @@ func (l natsLogger) WithValues(keysAndValues ...interface{}) logr.Logger {
 }
 
 var (
-	_ logr.Logger     = natsLogger{}
-	_ logr.InfoLogger = natsLogger{}
+	_ logr.Logger = natsLogger{}
 )
