@@ -339,11 +339,11 @@ func InitFlags(flagset *flag.FlagSet) {
 	if flagset == nil {
 		flagset = flag.CommandLine
 	}
-	flagset.BoolVar(&logging.toNatsServer, "logtonatsserver", true, "publish log to nats streaming server")
-	flagset.StringVar(&logging.logDir, "log_dir", "", "If non-empty, write log files in this directory")
-	flagset.StringVar(&logging.logFile, "log_file", "", "If non-empty, use this log file")
-	flagset.BoolVar(&logging.toStderr, "logtostderr", false, "log to standard error instead of nats streaming server")
-	flagset.BoolVar(&logging.alsoToStderr, "alsologtostderr", false, "log to standard error as well as nats streaming server")
+	flagset.BoolVar(&logging.toNatsServer, "natslog_tonatsserver", true, "publish log to nats streaming server")
+	flagset.StringVar(&logging.logDir, "natslog_dir", "", "If non-empty, write log files in this directory")
+	flagset.StringVar(&logging.logFile, "natslog_file", "", "If non-empty, use this log file")
+	flagset.BoolVar(&logging.toStderr, "natslog_tostderr", false, "log to standard error instead of nats streaming server")
+	flagset.BoolVar(&logging.alsoToStderr, "alsonatslog_tostderr", false, "log to standard error as well as nats streaming server")
 	flagset.Var(&logging.verbosity, "v", "number for the log level verbosity")
 	flagset.BoolVar(&logging.skipHeaders, "skip_headers", false, "If true, avoid header prefixes in the log messages")
 	flagset.Var(&logging.stderrThreshold, "stderrthreshold", "logs at or above this threshold go to stderr")
@@ -710,7 +710,7 @@ func (l *loggingT) output(s severity, buf *buffer, file string, line int, alsoTo
 
 // timeoutFlush calls Flush and returns when it completes or after timeout
 // elapses, whichever happens first.  This is needed because the hooks invoked
-// by Flush may deadlock when glog.Fatal is called from a hook that holds
+// by Flush may deadlock when natslog.Fatal is called from a hook that holds
 // a lock.
 func timeoutFlush(timeout time.Duration) {
 	done := make(chan bool, 1)
@@ -721,7 +721,7 @@ func timeoutFlush(timeout time.Duration) {
 	select {
 	case <-done:
 	case <-time.After(timeout):
-		fmt.Fprintln(os.Stderr, "glog: Flush took longer than", timeout)
+		fmt.Fprintln(os.Stderr, "natslog: Flush took longer than", timeout)
 	}
 }
 
@@ -795,7 +795,7 @@ func (sb *syncBuffer) Write(p []byte) (n int, err error) {
 }
 
 // rotateFile closes the syncBuffer's file and starts a new one.
-// The startup argument indicates whether this is the initial startup of klog.
+// The startup argument indicates whether this is the initial startup of natslog.
 // If startup is true, existing files are opened for apending instead of truncated.
 func (sb *syncBuffer) rotateFile(now time.Time, startup bool) error {
 	if sb.file != nil {
@@ -913,9 +913,9 @@ type Verbose bool
 // The returned value is a boolean of type Verbose, which implements Info, Infoln
 // and Infof. These methods will write to the Info log if called.
 // Thus, one may write either
-//	if glog.V(2) { glog.Info("log this") }
+//	if natslog.V(2) { natslog.Info("log this") }
 // or
-//	glog.V(2).Info("log this")
+//	natslog.V(2).Info("log this")
 // The second form is shorter but the first is cheaper if logging is off because it does
 // not evaluate its arguments.
 //

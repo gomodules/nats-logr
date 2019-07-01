@@ -33,7 +33,7 @@ func main() {
 		}
 	})
 
-	logger := natslogr.New().WithValues(natslogr.ClusterID, "test-cluster", natslogr.ClientID, "publisher", natslogr.NatsURL, stan.DefaultNatsURL, natslogr.ConnectWait, 5, natslogr.Subject, "testing")
+	logger := natslogr.New().WithValues(natslogr.ClusterID, "pharmer-cluster", natslogr.ClientID, "temporary", natslogr.NatsURL, stan.DefaultNatsURL, natslogr.ConnectWait, 5, natslogr.Subject, "Create-Cluster")
 	logger = logger.WithName("Something")
 	logger.V(2).Info("test", "key", "values")
 	logger.Error(newError("it's an error"), "error msg", "key2", "value2")

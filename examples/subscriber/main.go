@@ -24,7 +24,7 @@ func logCloser(c io.Closer) {
 
 func main() {
 	conn, err := stan.Connect(
-		"test-cluster",
+		"pharmer-cluster",
 		"subscriber",
 		stan.NatsURL(stan.DefaultNatsURL),
 		stan.ConnectWait(10*time.Second),
@@ -40,7 +40,7 @@ func main() {
 	log.Printf("Connected to %s clusterID: [%s] clientID: [%s]\n", stan.DefaultNatsURL, "test-cluster", "subscriber")
 
 	sub, err := conn.QueueSubscribe(
-		"testing",
+		"Create-Cluster",
 		"test", func(msg *stan.Msg) {
 			ProcessMsg(msg)
 		}, stan.SetManualAckMode(), stan.DurableName("i-remember"), stan.DeliverAllAvailable(), stan.AckWait(time.Second),
