@@ -178,7 +178,7 @@ func getNatsInfo(keyValues ...[]interface{}) (natsInfo, bool) {
 
 func connectToNatsStreamingServer(info natsInfo) stan.Conn {
 	conn, err := stan.Connect(
-		info.clusterID, info.clusterID, stan.NatsURL(info.natsUrl), stan.ConnectWait(info.connectWait),
+		info.clusterID, info.clientID, stan.NatsURL(info.natsUrl), stan.ConnectWait(info.connectWait),
 		stan.SetConnectionLostHandler(func(_ stan.Conn, reason error) {
 			log.Fatalln("Connection lost, reason:", reason)
 		}),
