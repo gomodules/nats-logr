@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"reflect"
 	"runtime"
 	"sort"
 	"time"
@@ -136,16 +135,8 @@ func (l natsLogger) clone() natsLogger {
 func getNatsInfo(keyValues ...[]interface{}) (natsInfo, bool) {
 	nats := natsInfo{}
 
-	seenKeys := make(map[interface{}]interface{})
+	seenKeys := make(map[interface{}]bool)
 	outs := make([][]interface{}, len(keyValues))
-
-	natsValueChanged := false
-
-	checkNatsValueChanged := func(key interface{}, value interface{}) {
-		if seenValue, ok := seenKeys[key]; ok && !reflect.DeepEqual(seenValue, value) {
-			natsValueChanged = true
-		}
-	}
 
 	for i := len(keyValues) - 1; i >= 0; i-- {
 		outs[i] = []interface{}{}
@@ -154,28 +145,21 @@ func getNatsInfo(keyValues ...[]interface{}) (natsInfo, bool) {
 		for j := len(keyValue) - 2 + (len(keyValue) % 2); j >= 0; j -= 2 {
 			key := keyValue[j]
 			value := keyValue[j+1]
-			if key == Subject {
-				checkNatsValueChanged(key, value)
-				nats.subject = value.(string)
-			} else if key == ClusterID {
-				checkNatsValueChanged(key, value)
-				nats.clusterID = value.(string)
-			} else if key == ClientID {
-				checkNatsValueChanged(key, value)
-				nats.clientID = value.(string)
-			} else if key == NatsURL {
-				checkNatsValueChanged(key, value)
-				nats.natsUrl = value.(string)
-			} else if key == ConnectWait {
-				checkNatsValueChanged(key, value)
-				nats.connectWait = time.Duration(value.(int)) * time.Second
-			}
-
 			if _, ok := seenKeys[key]; ok {
 				continue
 			}
-
-			seenKeys[key] = value
+			if key == Subject {
+				nats.subject = value.(string)
+			} else if key == ClusterID {
+				nats.clusterID = value.(string)
+			} else if key == ClientID {
+				nats.clientID = value.(string)
+			} else if key == NatsURL {
+				nats.natsUrl = value.(string)
+			} else if key == ConnectWait {
+				nats.connectWait = time.Duration(value.(int)) * time.Second
+			}
+			seenKeys[key] = true
 		}
 	}
 
@@ -189,12 +173,12 @@ func getNatsInfo(keyValues ...[]interface{}) (natsInfo, bool) {
 		nats.connectWait = 5 * time.Second
 	}
 
-	return nats, natsValueChanged
+	return nats, true
 }
 
 func connectToNatsStreamingServer(info natsInfo) stan.Conn {
 	conn, err := stan.Connect(
-		info.clusterID, info.clientID, stan.NatsURL(info.natsUrl), stan.ConnectWait(info.connectWait),
+		info.clusterID, info.clusterID, stan.NatsURL(info.natsUrl), stan.ConnectWait(info.connectWait),
 		stan.SetConnectionLostHandler(func(_ stan.Conn, reason error) {
 			log.Fatalln("Connection lost, reason:", reason)
 		}),

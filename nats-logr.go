@@ -79,12 +79,9 @@ func (l natsLogger) WithValues(keysAndValues ...interface{}) logr.Logger {
 	logger := l.clone()
 	logger.values = append(logger.values, keysAndValues...)
 
-	nats, changed := getNatsInfo(logger.values)
-	if changed && logger.stanConn != nil {
-		logger.stanConn.Close()
-	}
+	nats, ok := getNatsInfo(logger.values)
 
-	if changed {
+	if logger.stanConn == nil && ok {
 		logger.stanConn = connectToNatsStreamingServer(nats)
 	}
 
