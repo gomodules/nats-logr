@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 
-	stan "github.com/nats-io/go-nats-streaming"
+	stan "github.com/nats-io/stan.go"
 	natslogr "gomodules.xyz/nats-logr"
 	natslog "gomodules.xyz/nats-logr/nats-log"
 )
@@ -28,10 +28,10 @@ func main() {
 	flag.Parse()
 
 	flag.VisitAll(func(f1 *flag.Flag) {
-		fmt.Println("after klog", f1.Name, f1.Value)
+		fmt.Println(f1.Name, f1.Value)
 	})
 
-	logger := natslogr.New().WithValues(natslogr.ClusterID, "pharmer-cluster", natslogr.ClientID, "temporary", natslogr.NatsURL, stan.DefaultNatsURL, natslogr.ConnectWait, 5, natslogr.Subject, "create-cluster")
+	logger := natslogr.New().WithValues(natslogr.ClusterID, "pharmer-cluster", natslogr.ClientID, "publisher", natslogr.NatsURL, stan.DefaultNatsURL, natslogr.ConnectWait, 5, natslogr.Subject, "nats-log-example")
 	logger = logger.WithName("Something")
 	logger.V(2).Info("test", "key", "values", "v2", "info")
 	logger.Error(newError("it's an error"), "error msg", "key2", "value2")

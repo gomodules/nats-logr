@@ -8,17 +8,17 @@ github.com/go-macaron/inject
 github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/protoc-gen-gogo/descriptor
-# github.com/nats-io/go-nats v1.7.2
-github.com/nats-io/go-nats
-github.com/nats-io/go-nats/encoders/builtin
-github.com/nats-io/go-nats/util
-# github.com/nats-io/go-nats-streaming v0.4.4
-github.com/nats-io/go-nats-streaming
-github.com/nats-io/go-nats-streaming/pb
+# github.com/nats-io/nats.go v1.8.1
+github.com/nats-io/nats.go
+github.com/nats-io/nats.go/encoders/builtin
+github.com/nats-io/nats.go/util
 # github.com/nats-io/nkeys v0.0.2
 github.com/nats-io/nkeys
 # github.com/nats-io/nuid v1.0.1
 github.com/nats-io/nuid
+# github.com/nats-io/stan.go v0.4.5
+github.com/nats-io/stan.go
+github.com/nats-io/stan.go/pb
 # golang.org/x/crypto v0.0.0-20190530122614-20be4c3c3ed5
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/ed25519

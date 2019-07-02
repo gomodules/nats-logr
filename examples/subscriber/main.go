@@ -8,7 +8,7 @@ import (
 
 	"gopkg.in/macaron.v1"
 
-	stan "github.com/nats-io/go-nats-streaming"
+	stan "github.com/nats-io/stan.go"
 )
 
 func ProcessMsg(msg *stan.Msg) {
@@ -40,7 +40,7 @@ func main() {
 	log.Printf("Connected to %s clusterID: [%s] clientID: [%s]\n", stan.DefaultNatsURL, "test-cluster", "subscriber")
 
 	sub, err := conn.QueueSubscribe(
-		"create-cluster",
+		"nats-log-example",
 		"test", func(msg *stan.Msg) {
 			ProcessMsg(msg)
 		}, stan.SetManualAckMode(), stan.DurableName("i-remember"), stan.DeliverAllAvailable(), stan.AckWait(time.Second),

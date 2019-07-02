@@ -16,7 +16,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	stan "github.com/nats-io/go-nats-streaming"
+	stan "github.com/nats-io/stan.go"
 )
 
 // severity identifies the sort of log: info, warning etc. It also implements

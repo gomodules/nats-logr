@@ -20,13 +20,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nats-io/go-nats"
-	"github.com/nats-io/go-nats-streaming/pb"
+	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nuid"
+	"github.com/nats-io/stan.go/pb"
 )
 
 // Version is the NATS Streaming Go Client version
-const Version = "0.4.4"
+const Version = "0.4.5"
 
 const (
 	// DefaultNatsURL is the default URL the client connects to

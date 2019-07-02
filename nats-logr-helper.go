@@ -9,7 +9,7 @@ import (
 	"sort"
 	"time"
 
-	stan "github.com/nats-io/go-nats-streaming"
+	stan "github.com/nats-io/stan.go"
 )
 
 // Constants for Nats Streaming Server connection

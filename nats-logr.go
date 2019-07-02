@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	stan "github.com/nats-io/go-nats-streaming"
+	stan "github.com/nats-io/stan.go"
 	natslog "gomodules.xyz/nats-logr/nats-log"
 )
 
