@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 
 	stan "github.com/nats-io/go-nats-streaming"
 	natslogr "gomodules.xyz/nats-logr"
@@ -21,21 +22,17 @@ func (e errror) Error() string {
 }
 
 func main() {
-	flag.CommandLine.Parse([]string{})
-	natslogFlags := flag.NewFlagSet("natslog", flag.ExitOnError)
-	natslog.InitFlags(natslogFlags)
+	natslog.InitFlags(nil)
+	defer natslog.Flush()
 
-	flag.CommandLine.VisitAll(func(f1 *flag.Flag) {
-		f2 := natslogFlags.Lookup(f1.Name)
-		if f2 != nil {
-			value := f1.Value.String()
-			f2.Value.Set(value)
-		}
+	flag.Parse()
+
+	flag.VisitAll(func(f1 *flag.Flag) {
+		fmt.Println("after klog", f1.Name, f1.Value)
 	})
 
-	logger := natslogr.New().WithValues(natslogr.ClusterID, "pharmer-cluster", natslogr.ClientID, "temporary", natslogr.NatsURL, stan.DefaultNatsURL, natslogr.ConnectWait, 5, natslogr.Subject, "Create-Cluster")
+	logger := natslogr.New().WithValues(natslogr.ClusterID, "pharmer-cluster", natslogr.ClientID, "temporary", natslogr.NatsURL, stan.DefaultNatsURL, natslogr.ConnectWait, 5, natslogr.Subject, "create-cluster")
 	logger = logger.WithName("Something")
-	logger.V(2).Info("test", "key", "values")
+	logger.V(2).Info("test", "key", "values", "v2", "info")
 	logger.Error(newError("it's an error"), "error msg", "key2", "value2")
-	natslog.Flush()
 }

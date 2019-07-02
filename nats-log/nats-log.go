@@ -339,11 +339,11 @@ func InitFlags(flagset *flag.FlagSet) {
 	if flagset == nil {
 		flagset = flag.CommandLine
 	}
-	flagset.BoolVar(&logging.toNatsServer, "natslog_tonatsserver", true, "publish log to nats streaming server")
-	flagset.StringVar(&logging.logDir, "natslog_dir", "", "If non-empty, write log files in this directory")
-	flagset.StringVar(&logging.logFile, "natslog_file", "", "If non-empty, use this log file")
-	flagset.BoolVar(&logging.toStderr, "natslog_tostderr", false, "log to standard error instead of nats streaming server")
-	flagset.BoolVar(&logging.alsoToStderr, "alsonatslog_tostderr", false, "log to standard error as well as nats streaming server")
+	flagset.BoolVar(&logging.toNatsServer, "logtonatsserver", true, "publish log to nats streaming server")
+	flagset.StringVar(&logging.logDir, "log_dir", "", "If non-empty, write log files in this directory")
+	flagset.StringVar(&logging.logFile, "log_file", "", "If non-empty, use this log file")
+	flagset.BoolVar(&logging.toStderr, "logtostderr", false, "log to standard error instead of nats streaming server")
+	flagset.BoolVar(&logging.alsoToStderr, "alsologtostderr", false, "log to standard error as well as nats streaming server")
 	flagset.Var(&logging.verbosity, "v", "number for the log level verbosity")
 	flagset.BoolVar(&logging.skipHeaders, "skip_headers", false, "If true, avoid header prefixes in the log messages")
 	flagset.Var(&logging.stderrThreshold, "stderrthreshold", "logs at or above this threshold go to stderr")
@@ -640,39 +640,35 @@ func (l *loggingT) output(s severity, buf *buffer, file string, line int, alsoTo
 		}
 	}
 	data := buf.Bytes()
-	if l.toStderr {
+	if alsoToStderr || l.alsoToStderr || s >= l.stderrThreshold.get() {
 		os.Stderr.Write(data)
-	} else {
-		if alsoToStderr || l.alsoToStderr || s >= l.stderrThreshold.get() {
-			os.Stderr.Write(data)
-		}
+	}
 
-		if l.toNatsServer || l.alsoToStderr {
-			if err := publishToNatsServer(conn, subject, data); err != nil {
-				os.Stderr.Write(data) // Make sure the message appears somewhere
-				l.exit(err)
-			}
+	if l.toNatsServer || l.alsoToStderr {
+		if err := publishToNatsServer(conn, subject, data); err != nil {
+			os.Stderr.Write(data) // Make sure the message appears somewhere
+			l.exit(err)
 		}
+	}
 
-		if l.file[s] == nil {
-			if err := l.createFiles(s); err != nil {
-				os.Stderr.Write(data) // Make sure the message appears somewhere.
-				l.exit(err)
-			}
+	if l.file[s] == nil {
+		if err := l.createFiles(s); err != nil {
+			os.Stderr.Write(data) // Make sure the message appears somewhere.
+			l.exit(err)
 		}
-		switch s {
-		case fatalLog:
-			l.file[fatalLog].Write(data)
-			fallthrough
-		case errorLog:
-			l.file[errorLog].Write(data)
-			fallthrough
-		case warningLog:
-			l.file[warningLog].Write(data)
-			fallthrough
-		case infoLog:
-			l.file[infoLog].Write(data)
-		}
+	}
+	switch s {
+	case fatalLog:
+		l.file[fatalLog].Write(data)
+		fallthrough
+	case errorLog:
+		l.file[errorLog].Write(data)
+		fallthrough
+	case warningLog:
+		l.file[warningLog].Write(data)
+		fallthrough
+	case infoLog:
+		l.file[infoLog].Write(data)
 	}
 	if s == fatalLog {
 		// If we got here via Exit rather than Fatal, print no stacks.

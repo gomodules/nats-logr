@@ -40,7 +40,7 @@ func main() {
 	log.Printf("Connected to %s clusterID: [%s] clientID: [%s]\n", stan.DefaultNatsURL, "test-cluster", "subscriber")
 
 	sub, err := conn.QueueSubscribe(
-		"Create-Cluster",
+		"create-cluster",
 		"test", func(msg *stan.Msg) {
 			ProcessMsg(msg)
 		}, stan.SetManualAckMode(), stan.DurableName("i-remember"), stan.DeliverAllAvailable(), stan.AckWait(time.Second),
