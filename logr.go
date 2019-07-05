@@ -5,7 +5,6 @@ import (
 
 	"github.com/go-logr/logr"
 	stan "github.com/nats-io/stan.go"
-	natslog "gomodules.xyz/nats-logr/nats-log"
 )
 
 type natsLogger struct {
@@ -16,7 +15,7 @@ type natsLogger struct {
 }
 
 type natsInfo struct {
-	subject, clusterID, clientID, natsUrl string
+	subject, clusterID, clientID, natsURL string
 	connectWait                           time.Duration
 }
 
@@ -38,12 +37,12 @@ func (l natsLogger) Info(msg string, keysAndValues ...interface{}) {
 		fixedStr := flatten(trimmed[0]...)
 		userStr := flatten(trimmed[1]...)
 		nats, _ := getNatsInfo(l.values)
-		natslog.InfoDepth(framesToCaller(), l.stanConn, nats.subject, l.prefix, " ", lvlStr, " ", msgStr, " ", fixedStr, " ", userStr)
+		logging.printDepth(infoLog, framesToCaller(), l.stanConn, nats.subject, l.prefix, " ", lvlStr, " ", msgStr, " ", fixedStr, " ", userStr)
 	}
 }
 
 func (l natsLogger) Enabled() bool {
-	return bool(natslog.V(natslog.Level(l.level)))
+	return bool(V(Level(l.level)))
 }
 
 func (l natsLogger) Error(err error, msg string, keysAndValues ...interface{}) {
@@ -57,7 +56,7 @@ func (l natsLogger) Error(err error, msg string, keysAndValues ...interface{}) {
 	fixedStr := flatten(trimmed[0]...)
 	userStr := flatten(trimmed[1]...)
 	nats, _ := getNatsInfo(l.values)
-	natslog.ErrorDepth(framesToCaller(), l.stanConn, nats.subject, l.prefix, " ", msgStr, " ", errStr, " ", fixedStr, " ", userStr)
+	logging.printDepth(errorLog, framesToCaller(), l.stanConn, nats.subject, l.prefix, " ", msgStr, " ", errStr, " ", fixedStr, " ", userStr)
 }
 
 func (l natsLogger) V(level int) logr.InfoLogger {

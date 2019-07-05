@@ -155,7 +155,7 @@ func getNatsInfo(keyValues ...[]interface{}) (natsInfo, bool) {
 			} else if key == ClientID {
 				nats.clientID = value.(string)
 			} else if key == NatsURL {
-				nats.natsUrl = value.(string)
+				nats.natsURL = value.(string)
 			} else if key == ConnectWait {
 				nats.connectWait = time.Duration(value.(int)) * time.Second
 			}
@@ -166,8 +166,8 @@ func getNatsInfo(keyValues ...[]interface{}) (natsInfo, bool) {
 	if nats.clusterID == "" || nats.clientID == "" {
 		return nats, false
 	}
-	if nats.natsUrl == "" {
-		nats.natsUrl = stan.DefaultNatsURL
+	if nats.natsURL == "" {
+		nats.natsURL = stan.DefaultNatsURL
 	}
 	if nats.connectWait == 0 {
 		nats.connectWait = 5 * time.Second
@@ -178,13 +178,13 @@ func getNatsInfo(keyValues ...[]interface{}) (natsInfo, bool) {
 
 func connectToNatsStreamingServer(info natsInfo) stan.Conn {
 	conn, err := stan.Connect(
-		info.clusterID, info.clientID, stan.NatsURL(info.natsUrl), stan.ConnectWait(info.connectWait),
+		info.clusterID, info.clientID, stan.NatsURL(info.natsURL), stan.ConnectWait(info.connectWait),
 		stan.SetConnectionLostHandler(func(_ stan.Conn, reason error) {
 			log.Fatalln("Connection lost, reason:", reason)
 		}),
 	)
 	if err != nil {
-		log.Fatalf("Can't connect: %v.\nMake sure a NATS Streaming Server is running at: %s", err, info.natsUrl)
+		log.Fatalf("Can't connect: %v.\nMake sure a NATS Streaming Server is running at: %s", err, info.natsURL)
 		return nil
 	}
 	return conn

@@ -1,4 +1,4 @@
-package main
+package natslogr_test
 
 import (
 	"fmt"
@@ -6,12 +6,10 @@ import (
 	"log"
 	"time"
 
-	"gopkg.in/macaron.v1"
-
-	stan "github.com/nats-io/stan.go"
+	"github.com/nats-io/stan.go"
 )
 
-func ProcessMsg(msg *stan.Msg) {
+func processMsg(msg *stan.Msg) {
 	fmt.Printf("Received on [%s]: '%s'\n", msg.Subject, msg)
 	msg.Ack()
 }
@@ -22,14 +20,14 @@ func logCloser(c io.Closer) {
 	}
 }
 
-func main() {
+func Example_subscribe() {
 	conn, err := stan.Connect(
-		"pharmer-cluster",
-		"subscriber",
+		"example-cluster",
+		"example-client-2",
 		stan.NatsURL(stan.DefaultNatsURL),
-		stan.ConnectWait(10*time.Second),
+		stan.ConnectWait(5*time.Second),
 		stan.SetConnectionLostHandler(func(_ stan.Conn, reason error) {
-			log.Fatalln("Connection lost, reason:", reason)
+			log.Fatalln("Connection lost, reason: ", reason)
 		}),
 	)
 	if err != nil {
@@ -37,20 +35,14 @@ func main() {
 	}
 	defer logCloser(conn)
 
-	log.Printf("Connected to %s clusterID: [%s] clientID: [%s]\n", stan.DefaultNatsURL, "test-cluster", "subscriber")
+	log.Printf("Connected to %s clusterID: [%s] clientID: [%s]\n", stan.DefaultNatsURL, "example-cluster", "example-client-2")
 
 	sub, err := conn.QueueSubscribe(
 		"nats-log-example",
 		"test", func(msg *stan.Msg) {
-			ProcessMsg(msg)
+			processMsg(msg)
 		}, stan.SetManualAckMode(), stan.DurableName("i-remember"), stan.DeliverAllAvailable(), stan.AckWait(time.Second),
 	)
 	defer logCloser(sub)
 
-	m := macaron.Classic()
-
-	m.Get("/", func() string {
-		return "Hello stranger...!"
-	})
-	m.Run()
 }
