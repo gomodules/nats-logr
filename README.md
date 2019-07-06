@@ -91,7 +91,7 @@ func main() {
 	natslogr.InitFlags(nil)
 	defer natslogr.Flush()
 
-	logger := natslogr.New().
+	logger := natslogr.NewLogger().
 		WithName("Example").
 		WithValues(natslogr.ClusterID, "example-cluster", natslogr.ClientID, "example-client", natslogr.NatsURL, stan.DefaultNatsURL, natslogr.ConnectWait, 5, natslogr.Subject, "nats-log-example")
 	logger.Info("Log Example", "key", "value")

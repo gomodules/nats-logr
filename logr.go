@@ -19,8 +19,8 @@ type natsInfo struct {
 	connectWait                           time.Duration
 }
 
-// New returns a logr.Logger which is implemented by nats-logr
-func New() logr.Logger {
+// NewLogger returns a logr.Logger which is implemented by nats-logr
+func NewLogger() logr.Logger {
 	return natsLogger{
 		level:    0,
 		prefix:   "",

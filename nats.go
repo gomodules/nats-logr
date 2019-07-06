@@ -610,28 +610,6 @@ func (rb *redirectBuffer) Write(bytes []byte) (n int, err error) {
 	return rb.w.Write(bytes)
 }
 
-// SetOutput sets the output destination for all severities
-func SetOutput(w io.Writer) {
-	for s := fatalLog; s >= infoLog; s-- {
-		rb := &redirectBuffer{
-			w: w,
-		}
-		logging.file[s] = rb
-	}
-}
-
-// SetOutputBySeverity sets the output destination for specific severity
-func SetOutputBySeverity(name string, w io.Writer) {
-	sev, ok := severityByName(name)
-	if !ok {
-		panic(fmt.Sprintf("SetOutputBySeverity(%q): unrecognized severity name", name))
-	}
-	rb := &redirectBuffer{
-		w: w,
-	}
-	logging.file[sev] = rb
-}
-
 // output writes the data to the log files and releases the buffer.
 func (l *loggingT) output(s severity, buf *buffer, file string, line int, alsoToStderr bool, conn stan.Conn, subject string) {
 	l.mu.Lock()
@@ -871,10 +849,6 @@ func (l *loggingT) flushAll() {
 		}
 	}
 }
-
-// logBridge provides the Write method that enables CopyStandardLogTo to connect
-// Go's standard logs to the logs provided by this package.
-type logBridge severity
 
 // setV computes and remembers the V level for a given PC
 // when vmodule is enabled.
