@@ -123,8 +123,8 @@ func copySlice(in []interface{}) []interface{} {
 	return out
 }
 
-func (l natsLogger) clone() natsLogger {
-	return natsLogger{
+func (l *natsLogger) clone() *natsLogger {
+	return &natsLogger{
 		level:    l.level,
 		prefix:   l.prefix,
 		values:   copySlice(l.values),

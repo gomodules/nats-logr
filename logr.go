@@ -21,7 +21,7 @@ type natsInfo struct {
 
 // NewLogger returns a logr.Logger which is implemented by nats-logr
 func NewLogger() logr.Logger {
-	return natsLogger{
+	return &natsLogger{
 		level:    0,
 		prefix:   "",
 		values:   nil,
@@ -29,7 +29,7 @@ func NewLogger() logr.Logger {
 	}
 }
 
-func (l natsLogger) Info(msg string, keysAndValues ...interface{}) {
+func (l *natsLogger) Info(msg string, keysAndValues ...interface{}) {
 	if l.Enabled() {
 		lvlStr := flatten("level", l.level)
 		msgStr := flatten("msg", msg)
@@ -41,11 +41,11 @@ func (l natsLogger) Info(msg string, keysAndValues ...interface{}) {
 	}
 }
 
-func (l natsLogger) Enabled() bool {
+func (l *natsLogger) Enabled() bool {
 	return bool(V(Level(l.level)))
 }
 
-func (l natsLogger) Error(err error, msg string, keysAndValues ...interface{}) {
+func (l *natsLogger) Error(err error, msg string, keysAndValues ...interface{}) {
 	msgStr := flatten("msg", msg)
 	var loggableErr interface{}
 	if err != nil {
@@ -59,13 +59,13 @@ func (l natsLogger) Error(err error, msg string, keysAndValues ...interface{}) {
 	logging.printDepth(errorLog, framesToCaller(), l.stanConn, nats.subject, l.prefix, " ", msgStr, " ", errStr, " ", fixedStr, " ", userStr)
 }
 
-func (l natsLogger) V(level int) logr.InfoLogger {
+func (l *natsLogger) V(level int) logr.InfoLogger {
 	logger := l.clone()
 	logger.level = level
 	return logger
 }
 
-func (l natsLogger) WithName(name string) logr.Logger {
+func (l *natsLogger) WithName(name string) logr.Logger {
 	logger := l.clone()
 	if len(l.prefix) > 0 {
 		logger.prefix = l.prefix + "/"
@@ -74,7 +74,7 @@ func (l natsLogger) WithName(name string) logr.Logger {
 	return logger
 }
 
-func (l natsLogger) WithValues(keysAndValues ...interface{}) logr.Logger {
+func (l *natsLogger) WithValues(keysAndValues ...interface{}) logr.Logger {
 	logger := l.clone()
 	logger.values = append(logger.values, keysAndValues...)
 
@@ -88,5 +88,5 @@ func (l natsLogger) WithValues(keysAndValues ...interface{}) logr.Logger {
 }
 
 var (
-	_ logr.Logger = natsLogger{}
+	_ logr.Logger = &natsLogger{}
 )
