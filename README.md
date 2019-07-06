@@ -104,3 +104,6 @@ func main() {
 ```
 
 Now, you will see the logs in the second window.
+
+## Acknowledgement
+The logger parts of this library has been adapted from [k8s.io/klog](https://github.com/kubernetes/klog) which itself is a fork of [golang/glog](https://github.com/golang/glog).
