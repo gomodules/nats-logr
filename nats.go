@@ -297,7 +297,6 @@ func InitFlags(flagset *flag.FlagSet) {
 	flagset.Var(&logging.verbosity, "v", "number for the log level verbosity")
 	flagset.BoolVar(&logging.skipHeaders, "skip_headers", false, "If true, avoid header prefixes in the log messages")
 	flagset.Var(&logging.vmodule, "vmodule", "comma-separated list of pattern=N settings for file-filtered logging")
-	flagset.Var(&logging.traceLocation, "log_backtrace_at", "when logging hits line file:N, emit a stack trace")
 }
 
 // Flush flushes all pending log I/O.
@@ -333,8 +332,6 @@ type loggingT struct {
 	// than zero, it means vmodule is enabled. It may be read safely
 	// using sync.LoadInt32, but is only modified under mu.
 	filterLength int32
-	// traceLocation is the state of the -log_backtrace_at flag.
-	traceLocation traceLocation
 	// These flags are modified only under lock, although verbosity may be fetched
 	// safely using atomic.LoadInt32.
 	vmodule   moduleSpec // The state of the -vmodule flag.
@@ -548,11 +545,6 @@ func (rb *redirectBuffer) Write(bytes []byte) (n int, err error) {
 // output writes the data to the log files and releases the buffer.
 func (l *loggingT) output(s severity, buf *buffer, file string, line int, conn stan.Conn, subject string) {
 	l.mu.Lock()
-	if l.traceLocation.isSet() {
-		if l.traceLocation.match(file, line) {
-			buf.Write(stacks(false))
-		}
-	}
 	data := buf.Bytes()
 
 	if l.toNatsServer {
