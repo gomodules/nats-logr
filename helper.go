@@ -3,13 +3,13 @@ package natslogr
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"runtime"
 	"sort"
-	"time"
 
-	stan "github.com/nats-io/stan.go"
+	"github.com/nats-io/stan.go"
 )
 
 // Constants for Nats Streaming Server connection
@@ -125,66 +125,36 @@ func copySlice(in []interface{}) []interface{} {
 
 func (l *natsLogger) clone() *natsLogger {
 	return &natsLogger{
-		level:    l.level,
-		prefix:   l.prefix,
-		values:   copySlice(l.values),
-		stanConn: l.stanConn,
+		level:       l.level,
+		prefix:      l.prefix,
+		values:      copySlice(l.values),
+		stanConn:    l.stanConn,
+		natsSubject: l.natsSubject,
 	}
 }
 
-func getNatsInfo(keyValues ...[]interface{}) (natsInfo, bool) {
-	nats := natsInfo{}
-
-	seenKeys := make(map[interface{}]bool)
-	outs := make([][]interface{}, len(keyValues))
-
-	for i := len(keyValues) - 1; i >= 0; i-- {
-		outs[i] = []interface{}{}
-		keyValue := keyValues[i]
-
-		for j := len(keyValue) - 2 + (len(keyValue) % 2); j >= 0; j -= 2 {
-			key := keyValue[j]
-			value := keyValue[j+1]
-			if _, ok := seenKeys[key]; ok {
-				continue
-			}
-			if key == Subject {
-				nats.subject = value.(string)
-			} else if key == ClusterID {
-				nats.clusterID = value.(string)
-			} else if key == ClientID {
-				nats.clientID = value.(string)
-			} else if key == NatsURL {
-				nats.natsURL = value.(string)
-			} else if key == ConnectWait {
-				nats.connectWait = time.Duration(value.(int)) * time.Second
-			}
-			seenKeys[key] = true
-		}
+func checkNatsOptions(opts *Options) error {
+	if opts.ClusterID == "" || opts.ClientID == "" {
+		return errors.New("clusterID or clientID is missing")
 	}
-
-	if nats.clusterID == "" || nats.clientID == "" {
-		return nats, false
+	if opts.Subject == "" {
+		return errors.New("subject is missing")
 	}
-	if nats.natsURL == "" {
-		nats.natsURL = stan.DefaultNatsURL
+	if opts.NatsURL == "" {
+		opts.NatsURL = stan.DefaultNatsURL
 	}
-	if nats.connectWait == 0 {
-		nats.connectWait = 5 * time.Second
-	}
-
-	return nats, true
+	return nil
 }
 
-func connectToNatsStreamingServer(info natsInfo) stan.Conn {
+func connectToNatsStreamingServer(opts Options) stan.Conn {
 	conn, err := stan.Connect(
-		info.clusterID, info.clientID, stan.NatsURL(info.natsURL), stan.ConnectWait(info.connectWait),
+		opts.ClusterID, opts.ClientID, stan.NatsURL(opts.NatsURL),
 		stan.SetConnectionLostHandler(func(_ stan.Conn, reason error) {
 			log.Fatalln("Connection lost, reason:", reason)
 		}),
 	)
 	if err != nil {
-		log.Fatalf("Can't connect: %v.\nMake sure a NATS Streaming Server is running at: %s", err, info.natsURL)
+		log.Fatalf("Can't connect: %v.\nMake sure a NATS Streaming Server is running at: %s with clusterID: %s", err, opts.NatsURL, opts.ClusterID)
 		return nil
 	}
 	return conn

@@ -44,7 +44,6 @@ func main() {
 		"example-cluster",
 		"example-client-2",
 		stan.NatsURL(stan.DefaultNatsURL),
-		stan.ConnectWait(5*time.Second),
 		stan.SetConnectionLostHandler(func(_ stan.Conn, reason error) {
 			log.Fatalln("Connection lost, reason: ", reason)
 		}),
@@ -91,14 +90,19 @@ func main() {
 	natslogr.InitFlags(nil)
 	defer natslogr.Flush()
 
-	logger := natslogr.NewLogger().
+	opts := natslogr.Options{
+		ClusterID: "example-cluster",
+		ClientID:  "example-client",
+		Subject:   "nats-log-example",
+	}
+	logger := natslogr.NewLogger(opts).
 		WithName("Example").
-		WithValues(natslogr.ClusterID, "example-cluster", natslogr.ClientID, "example-client", natslogr.NatsURL, stan.DefaultNatsURL, natslogr.ConnectWait, 5, natslogr.Subject, "nats-log-example")
+		WithValues("withKey", "withValue")
 	logger.Info("Log Example", "key", "value")
 
 	logger.V(0).Info("Another Log Example", "logr", "nats-logr")
 
-	logger.Error(errors.New("An error has been occured"), "error msg", "logr", "nats-logr")
+	logger.Error(errors.New("an error has been occured"), "error msg", "logr", "nats-logr")
 }
 
 ```

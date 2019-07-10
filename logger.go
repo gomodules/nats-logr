@@ -206,76 +206,6 @@ func isLiteral(pattern string) bool {
 	return !strings.ContainsAny(pattern, `\*?[]`)
 }
 
-// traceLocation represents the setting of the -log_backtrace_at flag.
-type traceLocation struct {
-	file string
-	line int
-}
-
-// isSet reports whether the trace location has been specified.
-// logging.mu is held.
-func (t *traceLocation) isSet() bool {
-	return t.line > 0
-}
-
-// match reports whether the specified file and line matches the trace location.
-// The argument file name is the full path, not the basename specified in the flag.
-// logging.mu is held.
-func (t *traceLocation) match(file string, line int) bool {
-	if t.line != line {
-		return false
-	}
-	if i := strings.LastIndex(file, "/"); i >= 0 {
-		file = file[i+1:]
-	}
-	return t.file == file
-}
-
-func (t *traceLocation) String() string {
-	// Lock because the type is not atomic. TODO: clean this up.
-	logging.mu.Lock()
-	defer logging.mu.Unlock()
-	return fmt.Sprintf("%s:%d", t.file, t.line)
-}
-
-// Get is part of the (Go 1.2) flag.Getter interface. It always returns nil for this flag type since the
-// struct is not exported
-func (t *traceLocation) Get() interface{} {
-	return nil
-}
-
-var errTraceSyntax = errors.New("syntax error: expect file.go:234")
-
-// Syntax: -log_backtrace_at=gopherflakes.go:234
-// Note that unlike vmodule the file extension is included here.
-func (t *traceLocation) Set(value string) error {
-	if value == "" {
-		// Unset.
-		t.line = 0
-		t.file = ""
-	}
-	fields := strings.Split(value, ":")
-	if len(fields) != 2 {
-		return errTraceSyntax
-	}
-	file, line := fields[0], fields[1]
-	if !strings.Contains(file, ".") {
-		return errTraceSyntax
-	}
-	v, err := strconv.Atoi(line)
-	if err != nil {
-		return errTraceSyntax
-	}
-	if v <= 0 {
-		return errors.New("negative or zero value for level")
-	}
-	logging.mu.Lock()
-	defer logging.mu.Unlock()
-	t.line = v
-	t.file = file
-	return nil
-}
-
 // flushSyncWriter is the interface satisfied by logging destinations.
 type flushSyncWriter interface {
 	Flush() error
@@ -293,7 +223,6 @@ func InitFlags(flagset *flag.FlagSet) {
 	if flagset == nil {
 		flagset = flag.CommandLine
 	}
-	flagset.BoolVar(&logging.toNatsServer, "logtonatsserver", true, "publish log to nats streaming server")
 	flagset.Var(&logging.verbosity, "v", "number for the log level verbosity")
 	flagset.BoolVar(&logging.skipHeaders, "skip_headers", false, "If true, avoid header prefixes in the log messages")
 	flagset.Var(&logging.vmodule, "vmodule", "comma-separated list of pattern=N settings for file-filtered logging")
@@ -306,11 +235,6 @@ func Flush() {
 
 // loggingT collects all the global state of the logging setup.
 type loggingT struct {
-	// Boolean flags. Not handled atomically because the flag.Value interface
-	// does not let us avoid the =true, and that shorthand is necessary for
-	// compatibility. TODO: does this matter enough to fix? Seems unlikely.
-	toNatsServer bool // The -logtonatsserver flag.
-
 	// freeList is a list of byte buffers, maintained under freeListMu.
 	freeList *buffer
 	// freeListMu maintains the free list. It is separate from the main mutex
@@ -432,6 +356,8 @@ func (l *loggingT) header(s severity, depth int) (*buffer, string, int) {
 	return l.formatHeader(s, file, line), file, line
 }
 
+var pid = os.Getpid()
+
 // formatHeader formats a log header using the provided file name and line number.
 func (l *loggingT) formatHeader(s severity, file string, line int) *buffer {
 	now := timeNow()
@@ -463,7 +389,7 @@ func (l *loggingT) formatHeader(s severity, file string, line int) *buffer {
 	buf.tmp[14] = '.'
 	buf.nDigits(6, 15, now.Nanosecond()/1000, '0')
 	buf.tmp[21] = ' '
-	buf.nDigits(7, 22, os.Getpid(), ' ') // TODO: should be TID
+	buf.nDigits(7, 22, pid, ' ') // TODO: should be TID
 	buf.tmp[29] = ' '
 	buf.Write(buf.tmp[:30])
 	buf.WriteString(file)
@@ -547,11 +473,9 @@ func (l *loggingT) output(s severity, buf *buffer, file string, line int, conn s
 	l.mu.Lock()
 	data := buf.Bytes()
 
-	if l.toNatsServer {
-		if err := publishToNatsServer(conn, subject, data); err != nil {
-			os.Stderr.Write(data) // Make sure the message appears somewhere
-			l.exit(err)
-		}
+	if err := publishToNatsServer(conn, subject, data); err != nil {
+		os.Stderr.Write(data) // Make sure the message appears somewhere
+		l.exit(err)
 	}
 
 	l.putBuffer(buf)
