@@ -1,10 +1,11 @@
 package natslogr
 
 import (
-	"log"
+	"fmt"
+	"os"
 
 	"github.com/go-logr/logr"
-	stan "github.com/nats-io/stan.go"
+	"github.com/nats-io/stan.go"
 )
 
 type natsLogger struct {
@@ -23,8 +24,8 @@ type Options struct {
 // NewLogger returns a logr.Logger which is implemented by nats-logr
 func NewLogger(opts Options) logr.Logger {
 	if err := checkNatsOptions(&opts); err != nil {
-		log.Fatalln(err)
-		return nil
+		fmt.Fprint(os.Stderr, err)
+		os.Exit(1)
 	}
 	return &natsLogger{
 		level:       0,

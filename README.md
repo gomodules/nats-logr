@@ -20,7 +20,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/signal"
 	"time"
@@ -35,7 +34,8 @@ func processMsg(msg *stan.Msg) {
 
 func logCloser(c io.Closer) {
 	if err := c.Close(); err != nil {
-		log.Println("Close error:", err)
+		fmt.Fprintf(os.Stderr, "Close error: %v", err)
+		os.Exit(1)
 	}
 }
 
@@ -45,15 +45,17 @@ func main() {
 		"example-client-2",
 		stan.NatsURL(stan.DefaultNatsURL),
 		stan.SetConnectionLostHandler(func(_ stan.Conn, reason error) {
-			log.Fatalln("Connection lost, reason: ", reason)
+			fmt.Fprintf(os.Stderr, "Connection lost, reason: ", reason)
+			os.Exit(1)
 		}),
 	)
 	if err != nil {
-		log.Fatalf("Can't connect: %v.\nMake sure a NATS Streaming Server is running at: %s", err, stan.DefaultNatsURL)
+		fmt.Fprintf(os.Stderr, "Can't connect: %v.\nMake sure a NATS Streaming Server is running at: %s", err, stan.DefaultNatsURL)
+		os.Exit(1)
 	}
 	defer logCloser(conn)
 
-	log.Printf("Connected to %s clusterID: [%s] clientID: [%s]\n", stan.DefaultNatsURL, "example-cluster", "example-client-2")
+	fmt.Printf("Connected to %s clusterID: [%s] clientID: [%s]\n", stan.DefaultNatsURL, "example-cluster", "example-client-2")
 
 	sub, err := conn.QueueSubscribe(
 		"nats-log-example",

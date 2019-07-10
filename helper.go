@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"os"
 	"runtime"
 	"sort"
 
@@ -150,12 +150,13 @@ func connectToNatsStreamingServer(opts Options) stan.Conn {
 	conn, err := stan.Connect(
 		opts.ClusterID, opts.ClientID, stan.NatsURL(opts.NatsURL),
 		stan.SetConnectionLostHandler(func(_ stan.Conn, reason error) {
-			log.Fatalln("Connection lost, reason:", reason)
+			fmt.Fprintf(os.Stderr, "Connection lost, reason: %v", reason)
+			os.Exit(1)
 		}),
 	)
 	if err != nil {
-		log.Fatalf("Can't connect: %v.\nMake sure a NATS Streaming Server is running at: %s with clusterID: %s", err, opts.NatsURL, opts.ClusterID)
-		return nil
+		fmt.Fprintf(os.Stderr, "Can't connect: %v.\nMake sure a NATS Streaming Server is running at: %s with clusterID: %s", err, opts.NatsURL, opts.ClusterID)
+		os.Exit(1)
 	}
 	return conn
 }
