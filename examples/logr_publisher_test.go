@@ -5,8 +5,6 @@ import (
 	"fmt"
 
 	natslogr "gomodules.xyz/nats-logr"
-
-	"github.com/nats-io/stan.go"
 )
 
 type errorr struct {
@@ -28,9 +26,14 @@ func Example() {
 	natslogr.InitFlags(nil)
 	defer natslogr.Flush()
 
-	logger := natslogr.NewLogger().
+	opts := natslogr.Options{
+		ClusterID: "example-cluster",
+		ClientID:  "example-client",
+		Subject:   "nats-log-example",
+	}
+	logger := natslogr.NewLogger(opts).
 		WithName("Example").
-		WithValues(natslogr.ClusterID, "example-cluster", natslogr.ClientID, "example-client", natslogr.NatsURL, stan.DefaultNatsURL, natslogr.ConnectWait, 5, natslogr.Subject, "nats-log-example")
+		WithValues("withKey", "withValue")
 	logger.Info("Log Example", "key", "value")
 
 	logger.V(0).Info("Another Log Example", "logr", "nats-logr")

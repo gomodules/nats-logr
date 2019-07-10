@@ -1,31 +1,38 @@
 package natslogr
 
 import (
-	"time"
+	"fmt"
+	"os"
 
 	"github.com/go-logr/logr"
-	stan "github.com/nats-io/stan.go"
+	"github.com/nats-io/stan.go"
 )
 
 type natsLogger struct {
-	level    int
-	prefix   string
-	values   []interface{}
-	stanConn stan.Conn
+	level       int
+	prefix      string
+	values      []interface{}
+	stanConn    stan.Conn
+	natsSubject string
 }
 
-type natsInfo struct {
-	subject, clusterID, clientID, natsURL string
-	connectWait                           time.Duration
+// The Options contains necessary information about nats-connection
+type Options struct {
+	ClusterID, ClientID, NatsURL, Subject string
 }
 
 // NewLogger returns a logr.Logger which is implemented by nats-logr
-func NewLogger() logr.Logger {
+func NewLogger(opts Options) logr.Logger {
+	if err := checkNatsOptions(&opts); err != nil {
+		fmt.Fprint(os.Stderr, err)
+		os.Exit(1)
+	}
 	return &natsLogger{
-		level:    0,
-		prefix:   "",
-		values:   nil,
-		stanConn: nil,
+		level:       0,
+		prefix:      "",
+		values:      nil,
+		stanConn:    connectToNatsStreamingServer(opts),
+		natsSubject: opts.Subject,
 	}
 }
 
@@ -36,8 +43,7 @@ func (l *natsLogger) Info(msg string, keysAndValues ...interface{}) {
 		trimmed := trimDuplicates(l.values, keysAndValues)
 		fixedStr := flatten(trimmed[0]...)
 		userStr := flatten(trimmed[1]...)
-		nats, _ := getNatsInfo(l.values)
-		logging.printDepth(infoLog, framesToCaller(), l.stanConn, nats.subject, l.prefix, " ", lvlStr, " ", msgStr, " ", fixedStr, " ", userStr)
+		logging.printDepth(infoLog, framesToCaller(), l.stanConn, l.natsSubject, l.prefix, " ", lvlStr, " ", msgStr, " ", fixedStr, " ", userStr)
 	}
 }
 
@@ -55,8 +61,7 @@ func (l *natsLogger) Error(err error, msg string, keysAndValues ...interface{}) 
 	trimmed := trimDuplicates(l.values, keysAndValues)
 	fixedStr := flatten(trimmed[0]...)
 	userStr := flatten(trimmed[1]...)
-	nats, _ := getNatsInfo(l.values)
-	logging.printDepth(errorLog, framesToCaller(), l.stanConn, nats.subject, l.prefix, " ", msgStr, " ", errStr, " ", fixedStr, " ", userStr)
+	logging.printDepth(errorLog, framesToCaller(), l.stanConn, l.natsSubject, l.prefix, " ", msgStr, " ", errStr, " ", fixedStr, " ", userStr)
 }
 
 func (l *natsLogger) V(level int) logr.InfoLogger {
@@ -77,16 +82,7 @@ func (l *natsLogger) WithName(name string) logr.Logger {
 func (l *natsLogger) WithValues(keysAndValues ...interface{}) logr.Logger {
 	logger := l.clone()
 	logger.values = append(logger.values, keysAndValues...)
-
-	nats, ok := getNatsInfo(logger.values)
-
-	if logger.stanConn == nil && ok {
-		logger.stanConn = connectToNatsStreamingServer(nats)
-	}
-
 	return logger
 }
 
-var (
-	_ logr.Logger = &natsLogger{}
-)
+var _ logr.Logger = &natsLogger{}
